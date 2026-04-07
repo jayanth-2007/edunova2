@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EduNova — Diagnostic Assessment</title>
+  <link rel="stylesheet" href="css/main.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    .quiz-wrap { max-width: 680px; margin: 3rem auto; padding: 0 1rem; }
+    .quiz-header { text-align: center; margin-bottom: 2rem; }
+    .quiz-header h2 { font-size: 24px; font-weight: 800; }
+    .quiz-header p  { color: var(--muted); font-size: 14px; margin-top: 4px; }
+    .q-counter { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: 13px; color: var(--muted); }
+    .timer { font-size: 20px; font-weight: 800; color: var(--primary); }
+    .timer.urgent { color: var(--danger); animation: pulse 0.5s ease infinite alternate; }
+    @keyframes pulse { to { opacity: 0.5; } }
+    .q-text { font-size: 20px; font-weight: 700; margin-bottom: 1.5rem; line-height: 1.4; }
+    .options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 2rem; }
+    .option {
+      padding: 14px 18px; border-radius: var(--radius);
+      border: 2px solid #E5E7EB; background: white;
+      font-size: 15px; cursor: pointer; transition: all 0.2s;
+      text-align: left; font-family: inherit; font-weight: 500;
+    }
+    .option:hover { border-color: var(--primary); background: #EEF2FF; }
+    .option.selected { border-color: var(--primary); background: #EEF2FF; color: var(--primary); }
+    .option.correct  { border-color: var(--secondary); background: #D1FAE5; color: #065F46; }
+    .option.wrong    { border-color: var(--danger);    background: #FEE2E2; color: #991B1B; }
+    .result-box { text-align: center; padding: 2rem; }
+    .result-box h2 { font-size: 26px; font-weight: 800; margin-bottom: 0.5rem; }
+    .score-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 1.5rem 0; }
+    .ai-msg { background: #EEF2FF; border-radius: var(--radius); padding: 1rem; margin: 1rem 0; font-size: 14px; color: var(--primary-dark); border-left: 4px solid var(--primary); }
+    .topic-scores { display: flex; flex-direction: column; gap: 10px; margin: 1rem 0; }
+    .topic-row { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+    .topic-name { width: 80px; font-weight: 600; }
+    .topic-bar  { flex: 1; }
+    .topic-pct  { width: 40px; text-align: right; font-weight: 700; }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <a href="index.html" class="logo"><span class="edu">Edu</span><span class="nova">Nova</span></a>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="tutor.html">AI Tutor</a>
+  </div>
+</nav>
+
+<div class="quiz-wrap">
+  <div class="quiz-header">
+    <div class="badge badge-primary" style="margin-bottom:10px">EduNova Diagnostic Assessment</div>
+    <h2>Let's find your knowledge gaps</h2>
+    <p>10 questions • 30 seconds each • AI-powered analysis</p>
+  </div>
+
+  <!-- Quiz Area -->
+  <div id="quiz-area" class="card">
+    <div class="q-counter">
+      <span id="q-num">Question 1 of 10</span>
+      <span id="timer" class="timer">30</span>
+    </div>
+    <div class="progress-bar" style="margin-bottom:1.5rem">
+      <div id="q-progress" class="progress-fill" style="width:10%"></div>
+    </div>
+    <div class="badge badge-warning" id="q-topic" style="margin-bottom:1rem">Topic</div>
+    <div id="q-text" class="q-text">Loading question...</div>
+    <div id="options" class="options"></div>
+    <button id="next-btn" class="btn btn-primary btn-full" onclick="nextQuestion()" style="display:none">
+      Next Question →
+    </button>
+  </div>
+
+  <!-- Result Area (hidden initially) -->
+  <div id="result-area" class="card result-box" style="display:none">
+    <div style="font-size:48px;margin-bottom:0.5rem">🎉</div>
+    <h2>Assessment Complete!</h2>
+    <p style="color:var(--muted);margin-bottom:1rem">EduNova has analyzed your results</p>
+
+    <div id="ai-message" class="ai-msg"></div>
+
+    <div class="score-grid" id="score-grid"></div>
+
+    <div style="text-align:left;margin:1rem 0">
+      <p style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--muted)">MASTERY BY TOPIC</p>
+      <div id="topic-scores" class="topic-scores"></div>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:1.5rem;flex-wrap:wrap">
+      <a href="tutor.html" class="btn btn-primary">Chat with AI Tutor →</a>
+      <a href="dashboard.html" class="btn btn-outline">View Dashboard</a>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">Powered by EduNova AI — Built for AMD Slingshot Hackathon</footer>
+
+<script src="js/api.js"></script>
+<script>
+  requireAuth();
+  let questions = [], current = 0, answers = [], timer, timeLeft = 30, startTime;
+
+  async function loadQuestions() {
+    const d = await apiGet("/quiz/questions");
+    questions = d.questions;
+    showQuestion();
+  }
+
+  function showQuestion() {
+    const q = questions[current];
+    document.getElementById("q-num").textContent      = `Question ${current+1} of ${questions.length}`;
+    document.getElementById("q-progress").style.width = `${((current+1)/questions.length)*100}%`;
+    document.getElementById("q-topic").textContent    = q.topic;
+    document.getElementById("q-text").textContent     = q.question;
+    document.getElementById("next-btn").style.display = "none";
+
+    const opts = document.getElementById("options");
+    opts.innerHTML = "";
+    q.options.forEach(o => {
+      const b = document.createElement("button");
+      b.className   = "option";
+      b.textContent = o;
+      b.onclick     = () => selectAnswer(o, b);
+      opts.appendChild(b);
+    });
+
+    startTime = Date.now();
+    startTimer();
+  }
+
+  function startTimer() {
+    clearInterval(timer);
+    timeLeft = 30;
+    const el = document.getElementById("timer");
+    el.classList.remove("urgent");
+    el.textContent = timeLeft;
+    timer = setInterval(() => {
+      timeLeft--;
+      el.textContent = timeLeft;
+      if (timeLeft <= 10) el.classList.add("urgent");
+      if (timeLeft <= 0)  autoNext();
+    }, 1000);
+  }
+
+  function autoNext() {
+    clearInterval(timer);
+    const q = questions[current];
+    const timeTaken = (Date.now() - startTime) / 1000;
+    answers.push({ question_id: q.id, selected: null, time_taken: timeTaken });
+    document.querySelectorAll(".option").forEach(b => {
+      b.disabled = true;
+      if (b.textContent === q.answer) b.classList.add("correct");
+    });
+    setTimeout(nextQuestion, 800);
+  }
+
+  function selectAnswer(selected, btn) {
+    clearInterval(timer);
+    const q = questions[current];
+    const timeTaken = (Date.now() - startTime) / 1000;
+    answers.push({ question_id: q.id, selected, time_taken: timeTaken });
+    document.querySelectorAll(".option").forEach(b => {
+      b.disabled = true;
+      if (b.textContent === q.answer)  b.classList.add("correct");
+      if (b === btn && selected !== q.answer) b.classList.add("wrong");
+    });
+    btn.classList.toggle("selected", selected === q.answer);
+    document.getElementById("next-btn").style.display = "block";
+    if (current === questions.length - 1)
+      document.getElementById("next-btn").textContent = "Submit & See Results →";
+  }
+
+  async function nextQuestion() {
+    current++;
+    if (current < questions.length) {
+      showQuestion();
+    } else {
+      await submitQuiz();
+    }
+  }
+
+  async function submitQuiz() {
+    document.getElementById("quiz-area").style.display = "none";
+    document.getElementById("result-area").style.display = "block";
+    document.getElementById("ai-message").innerHTML = '<span class="spinner" style="border-top-color:var(--primary);border-color:#C7D2FE"></span> EduNova AI is analyzing your results...';
+
+    try {
+      const d = await apiPost("/quiz/submit", { answers });
+
+      document.getElementById("ai-message").textContent = d.message;
+
+      const scores = d.mastery_scores;
+      const overall = Math.round(Object.values(scores).reduce((a,b)=>a+b,0)/Object.values(scores).length);
+      const weak    = d.weak_topics.length;
+
+      document.getElementById("score-grid").innerHTML = `
+        <div class="metric-card"><div class="metric-value">${overall}%</div><div class="metric-label">Overall Score</div></div>
+        <div class="metric-card"><div class="metric-value" style="color:var(--secondary)">${Object.keys(scores).length}</div><div class="metric-label">Topics Tested</div></div>
+        <div class="metric-card"><div class="metric-value" style="color:var(--danger)">${weak}</div><div class="metric-label">Weak Topics</div></div>
+        <div class="metric-card"><div class="metric-value" style="color:var(--accent)">${Object.keys(scores).length - weak}</div><div class="metric-label">Strong Topics</div></div>
+      `;
+
+      const topicDiv = document.getElementById("topic-scores");
+      topicDiv.innerHTML = "";
+      for (const [topic, score] of Object.entries(scores)) {
+        const color = score >= 70 ? "fill-green" : score >= 40 ? "fill-amber" : "fill-red";
+        topicDiv.innerHTML += `
+          <div class="topic-row">
+            <span class="topic-name">${topic}</span>
+            <div class="topic-bar progress-bar"><div class="progress-fill ${color}" style="width:${score}%"></div></div>
+            <span class="topic-pct" style="color:${score>=70?'var(--secondary)':score>=40?'var(--accent)':'var(--danger)'}">${score}%</span>
+          </div>`;
+      }
+    } catch(e) {
+      document.getElementById("ai-message").textContent = "Results saved! Head to your dashboard.";
+    }
+  }
+
+  loadQuestions();
+</script>
+</body>
+</html>

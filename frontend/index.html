@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EduNova — Learn Smarter. Grow Faster.</title>
+  <link rel="stylesheet" href="css/main.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    .hero { min-height: calc(100vh - 62px); display: grid; grid-template-columns: 1fr 400px; gap: 4rem; align-items: center; max-width: 1100px; margin: 0 auto; padding: 2rem; }
+    .hero h1 { font-size: 48px; font-weight: 800; line-height: 1.15; margin-bottom: 1rem; }
+    .hero h1 span { color: var(--primary); }
+    .hero p { font-size: 17px; color: var(--muted); margin-bottom: 2rem; }
+    .steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 2rem; }
+    .step { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+    .step-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .auth-box { background: white; border-radius: 20px; box-shadow: var(--shadow-md); padding: 2rem; border: 1px solid #E5E7EB; }
+    @media(max-width:900px){ .hero { grid-template-columns:1fr; padding:1rem; } .hero h1{font-size:32px;} }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <a href="index.html" class="logo"><span class="edu">Edu</span><span class="nova">Nova</span></a>
+  <div class="nav-links hide-mobile">
+    <span class="badge badge-primary">GPT-4o Powered</span>
+    <span class="badge badge-success">AMD Optimized</span>
+  </div>
+</nav>
+
+<section class="hero">
+  <div>
+    <h1>Learn Smarter.<br/><span>Grow Faster.</span></h1>
+    <p>Your AI-powered personal tutor — diagnoses your gaps, teaches step-by-step, and schedules smart revisions just for you.</p>
+    <div class="steps">
+      <div class="step"><div class="step-dot" style="background:#EEF2FF">🎯</div><span><strong>Diagnose</strong> — AI finds your exact knowledge gaps</span></div>
+      <div class="step"><div class="step-dot" style="background:#D1FAE5">🧠</div><span><strong>Analyze</strong> — Mastery score per topic calculated</span></div>
+      <div class="step"><div class="step-dot" style="background:#FEF3C7">💬</div><span><strong>Teach</strong> — EduNova AI tutor explains step by step</span></div>
+      <div class="step"><div class="step-dot" style="background:#FEE2E2">🔁</div><span><strong>Revise</strong> — Smart scheduling keeps knowledge fresh</span></div>
+    </div>
+  </div>
+
+  <div class="auth-box">
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <div class="logo" style="font-size:28px"><span class="edu">Edu</span><span class="nova">Nova</span></div>
+      <p style="color:var(--muted);font-size:13px;margin-top:6px">Your AI learning journey starts here</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('login')">Sign In</button>
+      <button class="tab" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+
+    <div id="alert" class="alert"></div>
+
+    <!-- Login -->
+    <div id="login-form">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input id="l-email" type="email" class="form-input" placeholder="you@example.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input id="l-pass" type="password" class="form-input" placeholder="Your password"/>
+      </div>
+      <button id="login-btn" class="btn btn-primary btn-full" onclick="doLogin()">Sign in to EduNova</button>
+      <p style="text-align:center;font-size:13px;color:var(--muted);margin-top:1rem">
+        No account? <a href="#" onclick="switchTab('signup')" style="color:var(--primary);font-weight:600">Sign up free</a>
+      </p>
+    </div>
+
+    <!-- Signup -->
+    <div id="signup-form" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input id="s-name" type="text" class="form-input" placeholder="Your name"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input id="s-email" type="email" class="form-input" placeholder="you@example.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input id="s-pass" type="password" class="form-input" placeholder="Min 6 characters"/>
+      </div>
+      <button id="signup-btn" class="btn btn-success btn-full" onclick="doSignup()">Start learning with EduNova</button>
+      <p style="text-align:center;font-size:13px;color:var(--muted);margin-top:1rem">
+        Already have account? <a href="#" onclick="switchTab('login')" style="color:var(--primary);font-weight:600">Sign in</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">Powered by EduNova AI — Built for AMD Slingshot Hackathon</footer>
+
+<script src="js/api.js"></script>
+<script>
+  if (EduNova.isLoggedIn()) window.location.href = "dashboard.html";
+
+  function switchTab(t) {
+    document.querySelectorAll(".tab").forEach((el,i) => el.classList.toggle("active", (i===0&&t==="login")||(i===1&&t==="signup")));
+    document.getElementById("login-form").style.display  = t==="login"  ? "block" : "none";
+    document.getElementById("signup-form").style.display = t==="signup" ? "block" : "none";
+  }
+
+  async function doLogin() {
+    const email = document.getElementById("l-email").value.trim();
+    const pass  = document.getElementById("l-pass").value;
+    if (!email||!pass) return showAlert("alert","Please fill all fields");
+    setBtn("login-btn",'<span class="spinner"></span> Signing in...', true);
+    try {
+      const d = await apiPost("/auth/login", {email, password: pass});
+      EduNova.setUser(d.user);
+      window.location.href = "dashboard.html";
+    } catch(e) {
+      showAlert("alert", e.message);
+      setBtn("login-btn","Sign in to EduNova", false);
+    }
+  }
+
+  async function doSignup() {
+    const name  = document.getElementById("s-name").value.trim();
+    const email = document.getElementById("s-email").value.trim();
+    const pass  = document.getElementById("s-pass").value;
+    if (!name||!email||!pass) return showAlert("alert","Please fill all fields");
+    if (pass.length < 6)      return showAlert("alert","Password min 6 characters");
+    setBtn("signup-btn",'<span class="spinner"></span> Creating account...', true);
+    try {
+      const d = await apiPost("/auth/register", {name, email, password: pass});
+      EduNova.setUser(d.user);
+      window.location.href = "quiz.html";
+    } catch(e) {
+      showAlert("alert", e.message);
+      setBtn("signup-btn","Start learning with EduNova", false);
+    }
+  }
+
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    if (document.getElementById("login-form").style.display !== "none") doLogin();
+    else doSignup();
+  });
+</script>
+</body>
+</html>

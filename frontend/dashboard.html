@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EduNova — Dashboard</title>
+  <link rel="stylesheet" href="css/main.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    .dash-wrap { max-width: 1000px; margin: 0 auto; padding: 2rem 1rem; }
+    .dash-header { margin-bottom: 2rem; }
+    .dash-header h1 { font-size: 26px; font-weight: 800; }
+    .dash-header p  { color: var(--muted); font-size: 14px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 2rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+    .section-title { font-size: 14px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem; }
+    .topic-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 13px; }
+    .topic-name { width: 80px; font-weight: 600; }
+    .topic-pct  { width: 40px; text-align: right; font-weight: 700; }
+    .revision-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #F3F4F6; font-size: 13px; }
+    .revision-item:last-child { border: none; }
+    .path-item { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 8px; margin-bottom: 8px; background: var(--bg); font-size: 13px; font-weight: 600; }
+    .path-num  { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .empty-state { text-align: center; padding: 3rem; color: var(--muted); }
+    .empty-state a { color: var(--primary); font-weight: 600; }
+    @media(max-width:768px){ .metrics-grid{grid-template-columns:repeat(2,1fr)} .grid-2{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <a href="index.html" class="logo"><span class="edu">Edu</span><span class="nova">Nova</span></a>
+  <div class="nav-links">
+    <a href="quiz.html">Retake Quiz</a>
+    <a href="tutor.html">AI Tutor</a>
+    <button class="btn btn-outline" style="padding:6px 14px;font-size:13px" onclick="doLogout()">Logout</button>
+  </div>
+</nav>
+
+<div class="dash-wrap">
+  <div class="dash-header">
+    <h1 id="welcome-msg">Welcome back to EduNova!</h1>
+    <p>Your personalized learning journey at a glance</p>
+  </div>
+
+  <!-- Metrics -->
+  <div class="metrics-grid">
+    <div class="metric-card"><div class="metric-value" id="m-overall">—</div><div class="metric-label">Overall Score</div></div>
+    <div class="metric-card"><div class="metric-value" style="color:var(--secondary)" id="m-mastered">—</div><div class="metric-label">Topics Mastered</div></div>
+    <div class="metric-card"><div class="metric-value" style="color:var(--danger)" id="m-weak">—</div><div class="metric-label">Need Attention</div></div>
+    <div class="metric-card"><div class="metric-value" style="color:var(--accent)" id="m-total">—</div><div class="metric-label">Topics Tested</div></div>
+  </div>
+
+  <div id="no-data" class="card empty-state" style="display:none">
+    <div style="font-size:48px;margin-bottom:1rem">📊</div>
+    <h3 style="margin-bottom:0.5rem">No data yet!</h3>
+    <p>Take the <a href="quiz.html">diagnostic quiz</a> to see your personalized dashboard.</p>
+  </div>
+
+  <div id="data-section">
+    <!-- Chart + Revision -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-title">Mastery by Topic</div>
+        <div style="position:relative;height:220px"><canvas id="masteryChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Revision Schedule</div>
+        <div id="revision-list"></div>
+      </div>
+    </div>
+
+    <!-- Topic Breakdown + Learning Path -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="section-title">Topic Breakdown</div>
+        <div id="topic-breakdown"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Your Learning Path</div>
+        <div id="learning-path"></div>
+        <a href="tutor.html" class="btn btn-primary btn-full" style="margin-top:1rem">Start Learning with AI Tutor →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">Powered by EduNova AI — Built for AMD Slingshot Hackathon</footer>
+
+<script src="js/api.js"></script>
+<script>
+  requireAuth();
+  let chart = null;
+
+  async function loadDashboard() {
+    try {
+      const d = await apiGet("/dashboard/data");
+      const u = EduNova.getUser();
+      document.getElementById("welcome-msg").textContent =
+        `Welcome back to EduNova, ${d.name || u?.name || "Student"}!`;
+
+      const scores = d.mastery_scores || {};
+      if (Object.keys(scores).length === 0) {
+        document.getElementById("no-data").style.display   = "block";
+        document.getElementById("data-section").style.display = "none";
+        return;
+      }
+
+      document.getElementById("m-overall").textContent  = (d.overall_score || 0) + "%";
+      document.getElementById("m-mastered").textContent = d.topics_mastered || 0;
+      document.getElementById("m-weak").textContent     = (d.weak_topics || []).length;
+      document.getElementById("m-total").textContent    = d.total_topics || 0;
+
+      // Chart
+      const labels = Object.keys(scores);
+      const values = Object.values(scores);
+      const colors = values.map(v => v >= 70 ? "#10B981" : v >= 40 ? "#F59E0B" : "#EF4444");
+
+      if (chart) chart.destroy();
+      chart = new Chart(document.getElementById("masteryChart"), {
+        type: "bar",
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 6 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { min: 0, max: 100, ticks: { callback: v => v + "%" } },
+            x: { ticks: { font: { size: 11 } } }
+          }
+        }
+      });
+
+      // Topic breakdown
+      const tb = document.getElementById("topic-breakdown");
+      tb.innerHTML = "";
+      for (const [topic, score] of Object.entries(scores)) {
+        const cls   = score >= 70 ? "fill-green" : score >= 40 ? "fill-amber" : "fill-red";
+        const color = score >= 70 ? "var(--secondary)" : score >= 40 ? "var(--accent)" : "var(--danger)";
+        tb.innerHTML += `<div class="topic-row">
+          <span class="topic-name">${topic}</span>
+          <div class="topic-bar progress-bar" style="flex:1"><div class="progress-fill ${cls}" style="width:${score}%"></div></div>
+          <span class="topic-pct" style="color:${color}">${score}%</span>
+        </div>`;
+      }
+
+      // Revision schedule
+      const rv = document.getElementById("revision-list");
+      rv.innerHTML = "";
+      for (const [topic, when] of Object.entries(d.revision || {})) {
+        const badge = when === "Tomorrow" ? "badge-danger" : when.includes("3") ? "badge-warning" : "badge-success";
+        rv.innerHTML += `<div class="revision-item">
+          <span style="font-weight:600">${topic}</span>
+          <span class="badge ${badge}">${when}</span>
+        </div>`;
+      }
+
+      // Learning path
+      const lp = document.getElementById("learning-path");
+      lp.innerHTML = "";
+      const order = d.learning_order || Object.keys(scores);
+      if (order.length === 0) {
+        lp.innerHTML = '<p style="color:var(--muted);font-size:13px">Complete the quiz to get your learning path!</p>';
+      } else {
+        order.forEach((topic, i) => {
+          const score = scores[topic] || 0;
+          const badge = score < 70 ? "badge-danger" : "badge-success";
+          lp.innerHTML += `<div class="path-item">
+            <div class="path-num">${i+1}</div>
+            <span style="flex:1">${topic}</span>
+            <span class="badge ${badge}">${score}%</span>
+          </div>`;
+        });
+      }
+    } catch(e) {
+      document.getElementById("no-data").style.display      = "block";
+      document.getElementById("data-section").style.display = "none";
+    }
+  }
+
+  async function doLogout() {
+    await apiPost("/auth/logout", {});
+    EduNova.clear();
+    window.location.href = "index.html";
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>

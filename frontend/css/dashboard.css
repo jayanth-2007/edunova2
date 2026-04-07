@@ -1,0 +1,107 @@
+/* EduNova Dashboard Page Styles */
+.dash-wrap {
+  max-width: 1050px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.dash-header { margin-bottom: 2rem; }
+.dash-header h1 { font-size: 26px; font-weight: 800; }
+.dash-header p  { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+/* Metrics grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 2rem;
+}
+
+/* 2-column layout */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 1rem;
+}
+
+/* Topic rows */
+.topic-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+.topic-name { width: 80px; font-weight: 700; flex-shrink: 0; }
+.topic-bar  { flex: 1; }
+.topic-pct  { width: 42px; text-align: right; font-weight: 800; flex-shrink: 0; }
+
+/* Revision list */
+.revision-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #F3F4F6;
+  font-size: 13px;
+}
+.revision-item:last-child { border: none; }
+.revision-topic { font-weight: 600; }
+
+/* Learning path */
+.path-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.path-item:hover { background: #EEF2FF; }
+.path-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 3.5rem 2rem;
+  color: var(--muted);
+}
+.empty-state .empty-icon { font-size: 52px; margin-bottom: 1rem; }
+.empty-state h3  { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; }
+.empty-state a   { color: var(--primary); font-weight: 600; text-decoration: none; }
+.empty-state a:hover { text-decoration: underline; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  .grid-2       { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  .dash-wrap    { padding: 1rem; }
+}
